@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.Statement;
+
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +43,7 @@ public class IncomeRepository {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
                 "INSERT INTO incomes (user_id, amount, category, description, income_date) VALUES (?, ?, ?, ?, ?)",
-                Statement.RETURN_GENERATED_KEYS
+                new String[]{"id"}
             );
             ps.setLong(1, income.getUserId());
             ps.setBigDecimal(2, income.getAmount());

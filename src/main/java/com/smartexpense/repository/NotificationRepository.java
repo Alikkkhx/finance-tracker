@@ -8,7 +8,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
+
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -38,7 +38,7 @@ public class NotificationRepository {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
                 "INSERT INTO notifications (user_id, message, type) VALUES (?, ?, ?)",
-                Statement.RETURN_GENERATED_KEYS
+                new String[]{"id"}
             );
             ps.setLong(1, notification.getUserId());
             ps.setString(2, notification.getMessage());

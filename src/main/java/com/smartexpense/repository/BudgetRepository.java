@@ -9,7 +9,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
+
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +43,7 @@ public class BudgetRepository {
             PreparedStatement ps = connection.prepareStatement(
                 "INSERT INTO budgets (user_id, category, monthly_limit, budget_month, budget_year) VALUES (?, ?, ?, ?, ?) " +
                 "ON DUPLICATE KEY UPDATE monthly_limit = VALUES(monthly_limit)",
-                Statement.RETURN_GENERATED_KEYS
+                new String[]{"id"}
             );
             ps.setLong(1, budget.getUserId());
             ps.setString(2, budget.getCategory() != null ? budget.getCategory().name() : null);

@@ -8,7 +8,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.sql.PreparedStatement;
-import java.sql.Statement;
+
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +44,7 @@ public class UserRepository {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
                 "INSERT INTO users (username, password, email, full_name, monthly_income) VALUES (?, ?, ?, ?, ?)",
-                Statement.RETURN_GENERATED_KEYS
+                new String[]{"id"}
             );
             ps.setString(1, user.getUsername());
             ps.setString(2, user.getPassword());
