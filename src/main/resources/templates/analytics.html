@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics — Smart Expense Analyzer</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">💰</div>
+            <h1>Smart Expense<span>Financial Analyzer</span></h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/dashboard"><span class="nav-icon">📊</span> Dashboard</a></li>
+            <li><a href="/expenses"><span class="nav-icon">💸</span> Expenses</a></li>
+            <li><a href="/incomes"><span class="nav-icon">💵</span> Income</a></li>
+            <li><a href="/analytics" class="active"><span class="nav-icon">📈</span> Analytics</a></li>
+            <li><a href="/budget"><span class="nav-icon">🎯</span> Budget</a></li>
+            <li><a href="/profile"><span class="nav-icon">👤</span> Profile</a></li>
+        </ul>
+        <div class="nav-bottom">
+            <div class="user-info">
+                <div class="avatar" th:text="${#strings.substring(session.fullName ?: 'U', 0, 1)}">U</div>
+                <div>
+                    <div class="user-name" th:text="${session.fullName ?: 'User'}">User</div>
+                    <div class="user-role"><a href="/logout" style="color:var(--text-muted);text-decoration:none;font-size:11px;">Sign Out</a></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h2>Analytics</h2>
+                <p class="subtitle" th:text="'Deep insights for ' + ${currentMonth}">Analysis</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card neutral">
+                <div class="stat-icon">📊</div>
+                <div class="stat-label">Total Spent</div>
+                <div class="stat-value" th:text="'$' + ${#numbers.formatDecimal(analysis['totalExpenses'] ?: 0, 1, 2)}">$0</div>
+            </div>
+            <div class="stat-card neutral">
+                <div class="stat-icon">📏</div>
+                <div class="stat-label">Daily Average</div>
+                <div class="stat-value" th:text="'$' + ${#numbers.formatDecimal(dailyAverage, 1, 2)}">$0</div>
+            </div>
+            <div class="stat-card neutral">
+                <div class="stat-icon">🔮</div>
+                <div class="stat-label">Month Forecast</div>
+                <div class="stat-value" th:text="'$' + ${#numbers.formatDecimal(forecast, 1, 2)}">$0</div>
+            </div>
+            <div class="stat-card" th:classappend="${score >= 7} ? 'positive' : (${score >= 4} ? 'neutral' : 'negative')">
+                <div class="stat-icon">🧠</div>
+                <div class="stat-label">Financial Score</div>
+                <div class="stat-value" th:text="${score} + '/10'">5/10</div>
+                <div class="stat-change" th:text="${scoreLabel}" th:style="'color:' + ${scoreColor}">Average</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="content-grid-equal">
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">🍰</span> Category Breakdown</div>
+                <div class="chart-container">
+                    <canvas id="categoryPie"></canvas>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">📈</span> Monthly Trends</div>
+                <div class="chart-container">
+                    <canvas id="trendLine"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Details + Recommendations -->
+        <div class="content-grid">
+            <!-- Category Details Table -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">📊</span> Category Analysis</div>
+                <div th:if="${#lists.isEmpty(categorySummaries)}" class="empty-state">
+                    <div class="empty-icon">📈</div>
+                    <h3>No data to analyze</h3>
+                    <p>Add expenses to see category breakdown</p>
+                </div>
+                <table class="data-table" th:unless="${#lists.isEmpty(categorySummaries)}">
+                    <thead>
+                    <tr><th>Category</th><th>Amount</th><th>% of Total</th><th>Recommended</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="cat : ${categorySummaries}">
+                        <td><span class="category-badge" th:text="${cat.icon + ' ' + cat.displayName}">Category</span></td>
+                        <td><span class="amount" th:text="'$' + ${#numbers.formatDecimal(cat.totalAmount, 1, 2)}">$0</span></td>
+                        <td th:text="${#numbers.formatDecimal(cat.percentage, 1, 1)} + '%'">0%</td>
+                        <td class="text-muted" th:text="${cat.recommendedPercentage} + '%'">0%</td>
+                        <td>
+                            <span th:if="${cat.overRecommended}" class="text-danger">⚠️ Over</span>
+                            <span th:unless="${cat.overRecommended}" class="text-success">✅ OK</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Smart Recommendations -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">🧠</span> Smart Recommendations</div>
+                <div th:if="${#lists.isEmpty(recommendations)}" class="empty-state">
+                    <div class="empty-icon">✨</div>
+                    <h3>No recommendations</h3>
+                    <p>Add expenses to get insights</p>
+                </div>
+                <div th:each="rec : ${recommendations}">
+                    <div class="recommendation-card" th:classappend="${rec.type}">
+                        <div class="rec-icon" th:text="${rec.icon}">💡</div>
+                        <div>
+                            <div class="rec-title" th:text="${rec.title}">Title</div>
+                            <div class="rec-message" th:text="${rec.message}">Message</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script th:inline="javascript">
+    const categorySummaries = /*[[${categorySummaries}]]*/ [];
+    const trends = /*[[${trends}]]*/ [];
+    const colors = ['#6c5ce7','#a29bfe','#00b894','#fdcb6e','#e17055','#74b9ff','#fd79a8','#55efc4','#fab1a0'];
+
+    if (categorySummaries.length > 0) {
+        new Chart(document.getElementById('categoryPie'), {
+            type: 'doughnut',
+            data: {
+                labels: categorySummaries.map(c => c.displayName),
+                datasets: [{
+                    data: categorySummaries.map(c => c.totalAmount),
+                    backgroundColor: colors.slice(0, categorySummaries.length),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: '#a0a0cc', font: { size: 11, family: 'Inter' }, padding: 10 } } },
+                cutout: '60%'
+            }
+        });
+    }
+
+    if (trends.length > 0) {
+        new Chart(document.getElementById('trendLine'), {
+            type: 'line',
+            data: {
+                labels: trends.map(t => t.monthName),
+                datasets: [{
+                    label: 'Expenses',
+                    data: trends.map(t => t.totalExpenses),
+                    borderColor: '#e17055',
+                    backgroundColor: 'rgba(225, 112, 85, 0.1)',
+                    fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#e17055'
+                }, {
+                    label: 'Income',
+                    data: trends.map(t => t.totalIncome),
+                    borderColor: '#00b894',
+                    backgroundColor: 'rgba(0, 184, 148, 0.1)',
+                    fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#00b894'
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#a0a0cc', font: { family: 'Inter' } } } },
+                scales: {
+                    x: { ticks: { color: '#6b6b99' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                    y: { ticks: { color: '#6b6b99' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile — Smart Expense Analyzer</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="app-layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">💰</div>
+            <h1>Smart Expense<span>Financial Analyzer</span></h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/dashboard"><span class="nav-icon">📊</span> Dashboard</a></li>
+            <li><a href="/expenses"><span class="nav-icon">💸</span> Expenses</a></li>
+            <li><a href="/incomes"><span class="nav-icon">💵</span> Income</a></li>
+            <li><a href="/analytics"><span class="nav-icon">📈</span> Analytics</a></li>
+            <li><a href="/budget"><span class="nav-icon">🎯</span> Budget</a></li>
+            <li><a href="/profile" class="active"><span class="nav-icon">👤</span> Profile</a></li>
+        </ul>
+        <div class="nav-bottom">
+            <div class="user-info">
+                <div class="avatar" th:text="${#strings.substring(session.fullName ?: 'U', 0, 1)}">U</div>
+                <div>
+                    <div class="user-name" th:text="${session.fullName ?: 'User'}">User</div>
+                    <div class="user-role"><a href="/logout" style="color:var(--text-muted);text-decoration:none;font-size:11px;">Sign Out</a></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h2>Profile & Settings</h2>
+                <p class="subtitle">Manage your account</p>
+            </div>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success">✅ <span th:text="${success}"></span></div>
+        <div th:if="${error}" class="alert alert-error">⚠️ <span th:text="${error}"></span></div>
+
+        <div class="content-grid-equal">
+            <!-- Profile Settings -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">👤</span> Profile Settings</div>
+                <form method="post" th:action="@{/profile/update}">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="fullName" class="form-control" th:value="${user?.fullName}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control" th:value="${user?.email}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Monthly Income ($)</label>
+                        <input type="number" name="monthlyIncome" step="0.01" class="form-control" th:value="${user?.monthlyIncome}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+
+            <!-- Import/Export -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">📂</span> Data Import & Export</div>
+
+                <div style="margin-bottom:24px">
+                    <h4 style="margin-bottom:12px;color:var(--text-secondary)">Export Data</h4>
+                    <div style="display:flex;gap:12px;">
+                        <a th:href="@{/files/export/csv}" class="btn btn-secondary">📄 Export CSV</a>
+                        <a th:href="@{/files/export/json}" class="btn btn-secondary">📋 Export JSON</a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 style="margin-bottom:12px;color:var(--text-secondary)">Import Data</h4>
+                    <form method="post" th:action="@{/files/import/csv}" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label>Upload CSV File</label>
+                            <input type="file" name="file" accept=".csv" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">📥 Import CSV</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="glass-card mt-20">
+            <div class="flex-between" style="margin-bottom:20px">
+                <div class="card-title" style="margin-bottom:0"><span class="icon">🔔</span> Notifications</div>
+                <form method="post" th:action="@{/profile/notifications/read-all}">
+                    <button type="submit" class="btn btn-secondary btn-sm">Mark all read</button>
+                </form>
+            </div>
+
+            <div th:if="${#lists.isEmpty(notifications)}" class="empty-state">
+                <div class="empty-icon">🔕</div>
+                <h3>No notifications</h3>
+                <p>You're all caught up!</p>
+            </div>
+
+            <div th:each="notif : ${notifications}" class="notification-item" th:classappend="${!notif.read} ? 'unread' : ''">
+                <span class="notif-type" th:text="${notif.type == 'ALERT'} ? '🚨' : (${notif.type == 'WARNING'} ? '⚠️' : 'ℹ️')">ℹ️</span>
+                <span class="notif-message" th:text="${notif.message}">Notification</span>
+                <span class="notif-time" th:text="${#temporals.format(notif.createdAt, 'MMM dd, HH:mm')}">Time</span>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expenses — Smart Expense Analyzer</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="app-layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">💰</div>
+            <h1>Smart Expense<span>Financial Analyzer</span></h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/dashboard"><span class="nav-icon">📊</span> Dashboard</a></li>
+            <li><a href="/expenses" class="active"><span class="nav-icon">💸</span> Expenses</a></li>
+            <li><a href="/incomes"><span class="nav-icon">💵</span> Income</a></li>
+            <li><a href="/analytics"><span class="nav-icon">📈</span> Analytics</a></li>
+            <li><a href="/budget"><span class="nav-icon">🎯</span> Budget</a></li>
+            <li><a href="/profile"><span class="nav-icon">👤</span> Profile</a></li>
+        </ul>
+        <div class="nav-bottom">
+            <div class="user-info">
+                <div class="avatar" th:text="${#strings.substring(session.fullName ?: 'U', 0, 1)}">U</div>
+                <div>
+                    <div class="user-name" th:text="${session.fullName ?: 'User'}">User</div>
+                    <div class="user-role"><a href="/logout" style="color:var(--text-muted);text-decoration:none;font-size:11px;">Sign Out</a></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h2>Expenses</h2>
+                <p class="subtitle">Manage your spending</p>
+            </div>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success">✅ <span th:text="${success}"></span></div>
+        <div th:if="${error}" class="alert alert-error">⚠️ <span th:text="${error}"></span></div>
+
+        <!-- Add Expense Form -->
+        <div class="glass-card mb-20">
+            <div class="card-title"><span class="icon">➕</span> Add New Expense</div>
+            <form method="post" th:action="@{/expenses/add}" class="inline-form">
+                <div class="form-group">
+                    <label>Amount ($)</label>
+                    <input type="number" name="amount" step="0.01" min="0.01" class="form-control" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control" required>
+                        <option value="">Select category</option>
+                        <th:block th:each="cat : ${categories}">
+                            <option th:if="${cat.expenseCategory}" th:value="${cat.name()}" th:text="${cat.icon + ' ' + cat.displayName}">Category</option>
+                        </th:block>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" name="description" class="form-control" placeholder="What was it for?" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" name="date" class="form-control" th:value="${#temporals.format(T(java.time.LocalDate).now(), 'yyyy-MM-dd')}" required>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Expenses Table -->
+        <div class="glass-card">
+            <div class="card-title"><span class="icon">📋</span> All Expenses</div>
+            <div th:if="${#lists.isEmpty(expenses)}" class="empty-state">
+                <div class="empty-icon">📝</div>
+                <h3>No expenses yet</h3>
+                <p>Add your first expense above</p>
+            </div>
+            <table class="data-table" th:unless="${#lists.isEmpty(expenses)}">
+                <thead>
+                <tr><th>#</th><th>Category</th><th>Description</th><th>Amount</th><th>Date</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="expense, stat : ${expenses}">
+                    <td th:text="${stat.index + 1}">1</td>
+                    <td><span class="category-badge" th:text="${expense.category.icon + ' ' + expense.category.displayName}">Category</span></td>
+                    <td th:text="${expense.description}">Description</td>
+                    <td><span class="amount expense" th:text="'-$' + ${#numbers.formatDecimal(expense.amount, 1, 2)}">-$0.00</span></td>
+                    <td class="text-muted" th:text="${expense.date}">Date</td>
+                    <td>
+                        <form method="post" th:action="@{/expenses/delete/{id}(id=${expense.id})}" style="display:inline">
+                            <button type="submit" class="btn-icon" title="Delete" onclick="return confirm('Delete this expense?')">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Smart Expense Analyzer</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">💰</div>
+            <h1>Smart Expense<span>Financial Analyzer</span></h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/dashboard" class="active"><span class="nav-icon">📊</span> Dashboard</a></li>
+            <li><a href="/expenses"><span class="nav-icon">💸</span> Expenses</a></li>
+            <li><a href="/incomes"><span class="nav-icon">💵</span> Income</a></li>
+            <li><a href="/analytics"><span class="nav-icon">📈</span> Analytics</a></li>
+            <li><a href="/budget"><span class="nav-icon">🎯</span> Budget</a></li>
+            <li><a href="/profile"><span class="nav-icon">👤</span> Profile</a></li>
+        </ul>
+        <div class="nav-bottom">
+            <div class="user-info">
+                <div class="avatar" th:text="${#strings.substring(session.fullName ?: 'U', 0, 1)}">U</div>
+                <div>
+                    <div class="user-name" th:text="${session.fullName ?: 'User'}">User</div>
+                    <div class="user-role">
+                        <a href="/logout" style="color:var(--text-muted);text-decoration:none;font-size:11px;">Sign Out</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h2>Dashboard</h2>
+                <p class="subtitle" th:text="'Overview for ' + ${currentMonth}">Overview</p>
+            </div>
+            <div style="position:relative">
+                <a href="/profile" class="btn btn-secondary" style="position:relative;">
+                    🔔 Notifications
+                    <span th:if="${unreadNotifications > 0}" class="notification-badge"
+                          th:text="${unreadNotifications}">0</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card negative">
+                <div class="stat-icon">💸</div>
+                <div class="stat-label">Total Expenses</div>
+                <div class="stat-value" th:text="'$' + ${#numbers.formatDecimal(totalExpenses, 1, 2)}">$0.00</div>
+            </div>
+            <div class="stat-card positive">
+                <div class="stat-icon">💵</div>
+                <div class="stat-label">Total Income</div>
+                <div class="stat-value" th:text="'$' + ${#numbers.formatDecimal(totalIncome, 1, 2)}">$0.00</div>
+            </div>
+            <div class="stat-card" th:classappend="${netSavings >= 0} ? 'positive' : 'negative'">
+                <div class="stat-icon">📊</div>
+                <div class="stat-label">Net Savings</div>
+                <div class="stat-value" th:text="'$' + ${#numbers.formatDecimal(netSavings, 1, 2)}">$0.00</div>
+            </div>
+            <div class="stat-card neutral">
+                <div class="stat-icon">🔮</div>
+                <div class="stat-label">Month Forecast</div>
+                <div class="stat-value" th:text="'$' + ${#numbers.formatDecimal(forecast, 1, 2)}">$0.00</div>
+                <div class="stat-change text-muted" th:text="'Daily burn: $' + ${#numbers.formatDecimal(dailyBurn, 1, 2)} + '/day'">Daily burn</div>
+            </div>
+        </div>
+
+        <!-- Content Grid: Charts + Score -->
+        <div class="content-grid">
+            <!-- Monthly Trend Chart -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">📈</span> Monthly Trends</div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Financial Score -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">🧠</span> Financial Score</div>
+                <div class="score-gauge">
+                    <div class="score-circle" th:style="'background: conic-gradient(' + ${scoreColor} + ' ' + ${score * 10} + '%, rgba(255,255,255,0.06) 0)'">
+                        <span class="score-number" th:text="${score}" th:style="'color:' + ${scoreColor}">5</span>
+                        <span class="score-max">/10</span>
+                    </div>
+                    <div class="score-label" th:text="${scoreLabel}" th:style="'color:' + ${scoreColor}">Average</div>
+                    <div class="score-desc">Financial discipline rating</div>
+                </div>
+                <!-- Category Breakdown Pie -->
+                <div class="chart-container chart-container-sm" style="margin-top:10px">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Grid: Recommendations + Recent -->
+        <div class="content-grid-equal">
+            <!-- Smart Recommendations -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">🧠</span> Smart Recommendations</div>
+                <div th:if="${#lists.isEmpty(recommendations)}" class="empty-state">
+                    <div class="empty-icon">✨</div>
+                    <h3>No recommendations yet</h3>
+                    <p>Add some expenses to get smart insights</p>
+                </div>
+                <div th:each="rec : ${recommendations}">
+                    <div class="recommendation-card" th:classappend="${rec.type}">
+                        <div class="rec-icon" th:text="${rec.icon}">💡</div>
+                        <div>
+                            <div class="rec-title" th:text="${rec.title}">Title</div>
+                            <div class="rec-message" th:text="${rec.message}">Message</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Expenses -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">🕐</span> Recent Expenses</div>
+                <div th:if="${#lists.isEmpty(recentExpenses)}" class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <h3>No expenses yet</h3>
+                    <p>Start tracking your spending</p>
+                </div>
+                <table class="data-table" th:unless="${#lists.isEmpty(recentExpenses)}">
+                    <thead>
+                    <tr><th>Category</th><th>Description</th><th>Amount</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="expense : ${recentExpenses}">
+                        <td><span class="category-badge" th:text="${expense.category.icon + ' ' + expense.category.displayName}">Category</span></td>
+                        <td th:text="${expense.description}">Desc</td>
+                        <td><span class="amount expense" th:text="'-$' + ${#numbers.formatDecimal(expense.amount, 1, 2)}">-$0</span></td>
+                        <td class="text-muted" th:text="${expense.date}">Date</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top:16px;text-align:center">
+                    <a href="/expenses" class="btn btn-secondary btn-sm">View All Expenses →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Progress -->
+        <div class="glass-card" th:unless="${#lists.isEmpty(budgets)}">
+            <div class="card-title"><span class="icon">🎯</span> Budget Progress</div>
+            <div th:each="budget : ${budgets}" class="progress-bar-wrapper">
+                <div class="progress-header">
+                    <span class="label" th:text="${budget.category.icon + ' ' + budget.category.displayName}">Category</span>
+                    <span class="value" th:text="'$' + ${#numbers.formatDecimal(budget.currentSpending, 1, 2)} + ' / $' + ${#numbers.formatDecimal(budget.monthlyLimit, 1, 2)}">$0 / $0</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill"
+                         th:classappend="${budget.exceeded ? 'danger' : (budget.nearLimit ? 'warning' : '')}"
+                         th:style="'width:' + ${T(Math).min(budget.usagePercentage, 100)} + '%'"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Toast Container for WebSocket Notifications -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script th:inline="javascript">
+    // Chart Data from Thymeleaf
+    const trends = /*[[${trends}]]*/ [];
+    const categorySummaries = /*[[${categorySummaries}]]*/ [];
+    const userId = /*[[${session.userId}]]*/ 0;
+
+    // Monthly Trend Chart
+    if (trends.length > 0) {
+        new Chart(document.getElementById('trendChart'), {
+            type: 'bar',
+            data: {
+                labels: trends.map(t => t.monthName),
+                datasets: [
+                    {
+                        label: 'Expenses',
+                        data: trends.map(t => t.totalExpenses),
+                        backgroundColor: 'rgba(225, 112, 85, 0.6)',
+                        borderColor: '#e17055',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Income',
+                        data: trends.map(t => t.totalIncome),
+                        backgroundColor: 'rgba(0, 184, 148, 0.6)',
+                        borderColor: '#00b894',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#a0a0cc', font: { family: 'Inter' } } } },
+                scales: {
+                    x: { ticks: { color: '#6b6b99' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                    y: { ticks: { color: '#6b6b99' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+                }
+            }
+        });
+    }
+
+    // Category Pie Chart
+    if (categorySummaries.length > 0) {
+        const colors = ['#6c5ce7','#a29bfe','#00b894','#fdcb6e','#e17055','#74b9ff','#fd79a8','#55efc4','#fab1a0'];
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: categorySummaries.map(c => c.displayName),
+                datasets: [{
+                    data: categorySummaries.map(c => c.totalAmount),
+                    backgroundColor: colors.slice(0, categorySummaries.length),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#a0a0cc', font: { size: 11, family: 'Inter' }, padding: 8 } }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+</script>
+
+<!-- WebSocket for Real-time Notifications -->
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script th:inline="javascript">
+    const wsUserId = /*[[${session.userId}]]*/ 0;
+    try {
+        const socket = new SockJS('/ws');
+        const stompClient = Stomp.over(socket);
+        stompClient.debug = null; // Silence debug logs
+        stompClient.connect({}, function(frame) {
+            console.log('WebSocket connected');
+            stompClient.subscribe('/topic/notifications/' + wsUserId, function(message) {
+                const notification = JSON.parse(message.body);
+                showToast(notification.message, notification.type);
+            });
+        });
+    } catch(e) { console.log('WebSocket not available'); }
+
+    function showToast(message, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + (type || 'INFO');
+        toast.innerHTML = '<span style="font-size:18px">' +
+            (type === 'ALERT' ? '🚨' : type === 'WARNING' ? '⚠️' : 'ℹ️') +
+            '</span><span>' + message + '</span>';
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+    }
+</script>
+</body>
+</html>

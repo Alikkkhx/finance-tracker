@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget — Smart Expense Analyzer</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="app-layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">💰</div>
+            <h1>Smart Expense<span>Financial Analyzer</span></h1>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/dashboard"><span class="nav-icon">📊</span> Dashboard</a></li>
+            <li><a href="/expenses"><span class="nav-icon">💸</span> Expenses</a></li>
+            <li><a href="/incomes"><span class="nav-icon">💵</span> Income</a></li>
+            <li><a href="/analytics"><span class="nav-icon">📈</span> Analytics</a></li>
+            <li><a href="/budget" class="active"><span class="nav-icon">🎯</span> Budget</a></li>
+            <li><a href="/profile"><span class="nav-icon">👤</span> Profile</a></li>
+        </ul>
+        <div class="nav-bottom">
+            <div class="user-info">
+                <div class="avatar" th:text="${#strings.substring(session.fullName ?: 'U', 0, 1)}">U</div>
+                <div>
+                    <div class="user-name" th:text="${session.fullName ?: 'User'}">User</div>
+                    <div class="user-role"><a href="/logout" style="color:var(--text-muted);text-decoration:none;font-size:11px;">Sign Out</a></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div>
+                <h2>Budget</h2>
+                <p class="subtitle" th:text="'Set limits for ' + ${currentMonth} + ' ' + ${currentYear}">Budget management</p>
+            </div>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success">✅ <span th:text="${success}"></span></div>
+        <div th:if="${error}" class="alert alert-error">⚠️ <span th:text="${error}"></span></div>
+
+        <!-- Set Budget -->
+        <div class="glass-card mb-20">
+            <div class="card-title"><span class="icon">➕</span> Set Budget Limit</div>
+            <form method="post" th:action="@{/budget/set}" class="inline-form">
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control" required>
+                        <option value="">Select category</option>
+                        <th:block th:each="cat : ${categories}">
+                            <option th:if="${cat.expenseCategory}" th:value="${cat.name()}" th:text="${cat.icon + ' ' + cat.displayName}">Category</option>
+                        </th:block>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Monthly Limit ($)</label>
+                    <input type="number" name="monthlyLimit" step="0.01" min="1" class="form-control" placeholder="500.00" required>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">Set Budget</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Budget Progress -->
+        <div class="glass-card">
+            <div class="card-title"><span class="icon">📊</span> Budget Progress</div>
+
+            <div th:if="${#lists.isEmpty(budgets)}" class="empty-state">
+                <div class="empty-icon">🎯</div>
+                <h3>No budgets set</h3>
+                <p>Set category budgets above to track your spending</p>
+            </div>
+
+            <div th:each="budget : ${budgets}" class="progress-bar-wrapper" style="padding:16px;margin-bottom:12px;background:rgba(255,255,255,0.02);border-radius:12px;">
+                <div class="flex-between" style="margin-bottom:12px">
+                    <div>
+                        <span style="font-size:18px" th:text="${budget.category.icon}">📦</span>
+                        <strong th:text="${budget.category.displayName}">Category</strong>
+                    </div>
+                    <div style="display:flex;gap:16px;align-items:center;">
+                        <span th:if="${budget.exceeded}" class="text-danger" style="font-weight:700">⚠️ EXCEEDED</span>
+                        <span th:if="${budget.nearLimit}" th:unless="${budget.exceeded}" class="text-warning" style="font-weight:700">⚡ Near Limit</span>
+                        <span th:unless="${budget.nearLimit || budget.exceeded}" class="text-success" style="font-weight:700">✅ On Track</span>
+                        <form method="post" th:action="@{/budget/delete/{id}(id=${budget.id})}" style="display:inline">
+                            <button type="submit" class="btn-icon" title="Remove" onclick="return confirm('Remove budget?')">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="progress-header">
+                    <span class="label" th:text="'$' + ${#numbers.formatDecimal(budget.currentSpending, 1, 2)} + ' spent'">$0 spent</span>
+                    <span class="value" th:text="'$' + ${#numbers.formatDecimal(budget.monthlyLimit, 1, 2)} + ' limit'">$0 limit</span>
+                </div>
+                <div class="progress-track" style="height:10px">
+                    <div class="progress-fill"
+                         th:classappend="${budget.exceeded ? 'danger' : (budget.nearLimit ? 'warning' : '')}"
+                         th:style="'width:' + ${T(Math).min(budget.usagePercentage, 100)} + '%'"></div>
+                </div>
+                <div class="flex-between" style="margin-top:8px">
+                    <span class="text-muted" style="font-size:12px" th:text="${#numbers.formatDecimal(budget.usagePercentage, 1, 1)} + '% used'">0%</span>
+                    <span class="text-muted" style="font-size:12px"
+                          th:text="${budget.remaining.signum() >= 0} ? '$' + ${#numbers.formatDecimal(budget.remaining, 1, 2)} + ' remaining' : '$' + ${#numbers.formatDecimal(budget.remaining.negate(), 1, 2)} + ' over'">$0 remaining</span>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>
