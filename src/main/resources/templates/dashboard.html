@@ -9,32 +9,35 @@
 </head>
 <body>
 <div class="app-layout">
-    <!-- Sidebar -->
-    <nav class="sidebar">
-        <div class="sidebar-logo">
-            <div class="logo-icon">💰</div>
-            <h1>Smart Expense<span>Financial Analyzer</span></h1>
-        </div>
-        <ul class="nav-links">
-            <li><a href="/dashboard" class="active"><span class="nav-icon">📊</span> Dashboard</a></li>
-            <li><a href="/expenses"><span class="nav-icon">💸</span> Expenses</a></li>
-            <li><a href="/incomes"><span class="nav-icon">💵</span> Income</a></li>
-            <li><a href="/analytics"><span class="nav-icon">📈</span> Analytics</a></li>
-            <li><a href="/budget"><span class="nav-icon">🎯</span> Budget</a></li>
-            <li><a href="/profile"><span class="nav-icon">👤</span> Profile</a></li>
-        </ul>
-        <div class="nav-bottom">
-            <div class="user-info">
+        <!-- Top Navigation -->
+    <header class="top-nav">
+        <div class="nav-container">
+            <a href="/dashboard" class="nav-logo">
+                <div class="logo-icon">💰</div>
+                <h1>Smart Expense</h1>
+            </a>
+            <button class="menu-toggle" onclick="document.getElementById('mobileMenu').classList.toggle('show')">☰</button>
+            <nav class="nav-menu" id="mobileMenu">
+                <a href="/dashboard">📊 Dashboard</a>
+                <a href="/expenses">💸 Expenses</a>
+                <a href="/incomes">💵 Income</a>
+                <a href="/analytics">📈 Analytics</a>
+                <a href="/budget">🎯 Budget</a>
+                <a href="/profile">👤 Profile</a>
+            </nav>
+            <div class="nav-user">
                 <div class="avatar" th:text="${#strings.substring(session.fullName ?: 'U', 0, 1)}">U</div>
-                <div>
-                    <div class="user-name" th:text="${session.fullName ?: 'User'}">User</div>
-                    <div class="user-role">
-                        <a href="/logout" style="color:var(--text-muted);text-decoration:none;font-size:11px;">Sign Out</a>
-                    </div>
-                </div>
+                <a href="/logout" class="btn btn-secondary btn-sm" style="margin-left:8px;">Sign Out</a>
             </div>
         </div>
-    </nav>
+    </header>
+    <style>
+    #mobileMenu { display: flex; }
+    @media (max-width: 768px) {
+        #mobileMenu { display: none; }
+        #mobileMenu.show { display: flex; flex-direction: column; background: var(--bg-primary); position: absolute; top: 70px; left: 0; right: 0; padding: 20px; z-index: 1000; border-bottom: 1px solid var(--border-glass); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+    }
+    </style>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -52,6 +55,11 @@
             </div>
         </div>
 
+                <div style="display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+            <a href="/expenses" class="btn btn-danger">➕ Add Expense</a>
+            <a href="/incomes" class="btn btn-success" style="background:var(--success);color:#fff;border:none;">💸 Add Income</a>
+            <a href="/budget" class="btn btn-secondary">🎯 Set Budget</a>
+        </div>
         <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card negative">
